@@ -5,7 +5,7 @@
 # 
 # Unleashing the power of DCNN to create random Raphaëls.
 
-# In[52]:
+# In[1]:
 
 
 import numpy as np
@@ -17,7 +17,7 @@ from tensorflow.keras.layers import LeakyReLU
 from tensorflow.keras.models import Sequential, Model
 
 
-# In[ ]:
+# In[2]:
 
 
 def build_generator(latent_size):
@@ -45,69 +45,28 @@ def build_discriminator():
     discriminator = Sequential([
         # (128, 128, 3)
         Input(shape=(128, 128, 3), name="InputImages"),
-        Conv2D(32, 3, padding="same", strides=1),
+        Conv2D(64, 3, padding="same", strides=1),
+        MaxPooling2D(padding="same"),
         LeakyReLu(0.2),
         SpatialDropout2D(0.2),
         
+        Conv2D(128, 3, padding="same", strides=1),
+        LeakyReLu(0.2),
+        SpatialDropout2D(0.2),
+        
+        Conv2D(256, 3, padding="same", strides=1),
+        LeakyReLu(0.2),
+        SpatialDropout2D(0.2),
+        
+        Flatten(),
+        Dense(2, activation="softmax")        
     ])
-
-
-# In[11]:
-
-
-import math as m
-
-
-# In[31]:
-
-
-128 * 128 * 96 / (64 * 64)
-
-
-# In[32]:
-
-
-64 * 64 * 192 / (32 * 32)
-
-
-# In[34]:
-
-
-7 * 7 * 384 / (3 * 3)
-
-
-# In[40]:
-
-
-32 * 32 * 384 / (14 * 14)
-
-
-# In[47]:
-
-
-128 * 3
-
-
-# In[44]:
-
-
-96 * 2
-
-
-# In[45]:
-
-
-192 * 2
-
-
-# In[46]:
-
-
-96 /2
+    
+    return discriminator
 
 
 # In[ ]:
 
 
-
+generator = build_generator(100)
 
