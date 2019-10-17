@@ -5,7 +5,7 @@
 # 
 # Because there's never enough Raphaël.
 
-# In[45]:
+# In[1]:
 
 
 import glob
@@ -13,18 +13,18 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import   ImageDataGenerator
 
 EXT_DATA = "../../data/external"
 
 
-# In[46]:
+# In[2]:
 
 
 img = plt.imread(f"{EXT_DATA}/1.jpg", format="jpeg")
 
 
-# In[47]:
+# In[3]:
 
 
 plt.imshow(img)
@@ -32,27 +32,27 @@ plt.imshow(img)
 
 # ## Square and center the Raph
 
-# In[39]:
+# In[4]:
 
 
 img.shape
 
 
-# In[40]:
+# In[5]:
 
 
 size = min(img.shape[0:2])
 print(f"Chosen min size: {size}")
 
 
-# In[41]:
+# In[6]:
 
 
 margin = (max(img.shape[0:2]) - size) // 2
 print(f"Margin: {margin}")
 
 
-# In[42]:
+# In[7]:
 
 
 if np.array(img.shape).argmax() == 0:
@@ -65,7 +65,7 @@ print(f"Shape: {cropped.shape}")
 
 # ## Randomize the Raph
 
-# In[34]:
+# In[8]:
 
 
 augmenter = ImageDataGenerator(
