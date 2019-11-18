@@ -21,7 +21,7 @@ from tensorflow.keras.layers import Dropout, Input, Dense, Flatten, Reshape, Bat
 from tensorflow.keras.layers import LeakyReLU
 from tensorflow.keras.models import Sequential, Model
 
-from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
 
 
 # In[2]:
