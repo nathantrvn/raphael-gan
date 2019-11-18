@@ -193,7 +193,7 @@ def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noi
 
 with open("../../data/processed_data.json", "r") as f:
     data_path = json.load(f)["path"]
-epochs = 300
+epochs = 5000
 batch_size = 30
 
 validity = []
