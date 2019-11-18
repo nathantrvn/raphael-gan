@@ -215,6 +215,8 @@ with tqdm(total=size,
         pbar.set_description(f"Epoch {e}")
         batch_gen = batches_generator(data_path, batch_size)
         
+        discriminator.trainable = True
+        
         for batch, labels in batch_gen:
             noise = np.random.normal(size=(batch_size, 100))
             fake_imgs = generator.predict(noise)
@@ -225,11 +227,22 @@ with tqdm(total=size,
 
             y = keras.utils.to_categorical(y)
 
-            discriminator.trainable = True
             val = discriminator.train_on_batch(x, y)
             validity.append(val)
+        
+        batch_gen = batches_generator(data_path, batch_size)
+        discriminator.trainable = False
+        
+        for batch, labels in batch_gen:
+            noise = np.random.normal(size=(batch_size, 100))
+            fake_imgs = generator.predict(noise)
+            fake_labels = np.zeros(batch_size)
 
-            discriminator.trainable = False
+            x = np.concatenate((np.array(batch), fake_imgs), axis=0)
+            y = np.concatenate((np.array(labels), fake_labels))
+
+            y = keras.utils.to_categorical(y)
+            
             gen = combined.train_on_batch(noise, y[batch_size-1:-1, :])
             generation.append(gen)
             
