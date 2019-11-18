@@ -185,6 +185,7 @@ def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noi
         axes.imshow(img)
     if not(save_path is None):
         fig.savefig(save_path)
+        plt.close(fig)
 
 
 # In[16]:
