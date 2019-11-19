@@ -37,14 +37,17 @@ def build_generator(latent_size):
         # (32, 32, 192)
         UpSampling2D(),
         Conv2DTranspose(64, 3, padding="same", activation="relu"),
+        Conv2DTranspose(64, 3, padding="same", activation="relu"),
         BatchNormalization(momentum=0.8),
         # (64, 64, 96)
         UpSampling2D(),
         Conv2DTranspose(32, 3, padding="same", activation="relu"),
+        Conv2DTranspose(32, 3, padding="same", activation="relu"),
         BatchNormalization(momentum=0.8),
         # (128, 128, 3)
         UpSampling2D(),
-        Conv2DTranspose(3, 3, padding="same", activation="sigmoid")
+        Conv2DTranspose(3, 3, padding="same", activation="sigmoid"),
+        Conv2DTranspose(3, 3, padding="same", activation="sigmoid"),
     ], name="generator")
     
     return generator
@@ -108,7 +111,7 @@ discriminator.summary()
 generator.summary()
 
 
-# In[7]:
+# In[8]:
 
 
 def build_combined(discriminator, generator, latent_size):
@@ -119,19 +122,19 @@ def build_combined(discriminator, generator, latent_size):
     return Model(noise, validation, name="combined")
 
 
-# In[8]:
+# In[9]:
 
 
 combined = build_combined(discriminator, generator, 100)
 
 
-# In[9]:
+# In[10]:
 
 
 combined.summary()
 
 
-# In[10]:
+# In[11]:
 
 
 opt = keras.optimizers.Adam(lr=0.0002, decay=1e-7)
@@ -142,20 +145,20 @@ discriminator.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accur
 combined.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 
-# In[11]:
+# In[12]:
 
 
 noise = np.random.normal(size=(1, 100))
 rand_img = generator.predict(noise)
 
 
-# In[12]:
+# In[13]:
 
 
 plt.imshow(rand_img.reshape((128, 128, 3)))
 
 
-# In[13]:
+# In[14]:
 
 
 def batches_generator(data_path, batch_size):
@@ -169,7 +172,7 @@ def batches_generator(data_path, batch_size):
         yield np.array(batch), np.array(labels)
 
 
-# In[14]:
+# In[15]:
 
 
 def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noise=None):
@@ -193,7 +196,7 @@ def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noi
 
 with open("../../data/processed_data.json", "r") as f:
     data_path = json.load(f)["path"]
-epochs = 5000
+epochs = 3000
 batch_size = 30
 
 validity = []
@@ -208,11 +211,8 @@ with tqdm(total=size,
     val = [0, 0]
     seed = np.random.normal(size=(16, 100))
     
-    for e in tqdm(range(epochs), desc="Training", unit="epoch", postfix = {
-                "Gen loss": gen[0],
-                "Dis acc": val[1]
-            }):
-        pbar.set_description(f"Epoch {e}")
+    for e in tqdm(range(epochs), desc="Training", unit="epoch"):
+        pbar.set_description(f"Epoch {e} - disc training")
         batch_gen = batches_generator(data_path, batch_size)
         
         discriminator.trainable = True
@@ -229,6 +229,11 @@ with tqdm(total=size,
 
             val = discriminator.train_on_batch(x, y)
             validity.append(val)
+            
+            pbar.update(len(batch))
+            
+        pbar.reset()
+        pbar.set_description(f"Epoch {e} - gen training")
         
         batch_gen = batches_generator(data_path, batch_size)
         discriminator.trainable = False
@@ -250,15 +255,20 @@ with tqdm(total=size,
             
         pbar.reset()
         
-        if e % 10 == 0:
+        if e % 100 == 0:
             see_the_raph_growing(generator, 
                                  epoch=e, 
                                  save_path=f"../../reports/generated_imgs/{e}.png",
                                  noise=seed)
-        if e % 50 == 0:
+        if e % 300 == 0:
             discriminator.save(f"../../models/discriminator-{e}.h5")
             combined.save(f"../../models/combined-{e}.h5")
             generator.save(f"../../models/generator-{e}.h5")
+    
+    with open(f"../../reports/metrics/generation.json", "w+") as f:
+        json.dump(generation, f)
+    with open(f"../../reports/metrics/validity.json", "w+") as f:
+        json.dump(validity, f)
 
 
 # In[ ]:
