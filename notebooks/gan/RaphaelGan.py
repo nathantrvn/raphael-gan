@@ -164,12 +164,6 @@ rand_img = generator.predict(noise)
 plt.imshow(rand_img.reshape((128, 128, 3)))
 
 
-# In[59]:
-
-
-batch_gen = batches_generator(data_path, batch_size)
-
-
 # In[60]:
 
 
