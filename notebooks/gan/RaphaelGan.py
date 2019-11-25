@@ -24,7 +24,7 @@ from tensorflow.keras.models import Sequential, Model
 from tqdm import tqdm
 
 
-# In[2]:
+# In[22]:
 
 
 def build_generator(latent_size):    
@@ -81,37 +81,37 @@ def build_discriminator():
         Dropout(0.2),
         Dense(128, activation="relu"),
         Dropout(0.2),
-        Dense(2, activation="softmax")        
+        Dense(1, activation="sigmoid")        
     ], name="discriminator")
     
     return discriminator
 
 
-# In[3]:
+# In[23]:
 
 
 generator = build_generator(100)
 
 
-# In[4]:
+# In[24]:
 
 
 discriminator = build_discriminator()
 
 
-# In[5]:
+# In[25]:
 
 
 discriminator.summary()
 
 
-# In[6]:
+# In[26]:
 
 
 generator.summary()
 
 
-# In[8]:
+# In[27]:
 
 
 def build_combined(discriminator, generator, latent_size):
@@ -122,22 +122,22 @@ def build_combined(discriminator, generator, latent_size):
     return Model(noise, validation, name="combined")
 
 
-# In[9]:
+# In[28]:
 
 
 combined = build_combined(discriminator, generator, 100)
 
 
-# In[10]:
+# In[29]:
 
 
 combined.summary()
 
 
-# In[11]:
+# In[30]:
 
 
-opt = keras.optimizers.Adam(lr=0.0002, decay=1e-7)
+opt = keras.optimizers.Adam(lr=0.0001, decay=1e-7)
 
 discriminator.trainable = True
 discriminator.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
@@ -145,20 +145,20 @@ discriminator.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accur
 combined.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 
-# In[12]:
+# In[31]:
 
 
 noise = np.random.normal(size=(1, 100))
 rand_img = generator.predict(noise)
 
 
-# In[13]:
+# In[32]:
 
 
 plt.imshow(rand_img.reshape((128, 128, 3)))
 
 
-# In[14]:
+# In[33]:
 
 
 def batches_generator(data_path, batch_size):
@@ -172,7 +172,7 @@ def batches_generator(data_path, batch_size):
         yield np.array(batch), np.array(labels)
 
 
-# In[15]:
+# In[34]:
 
 
 def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noise=None):
@@ -191,16 +191,17 @@ def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noi
         plt.close(fig)
 
 
-# In[16]:
+# In[38]:
 
 
 with open("../../data/processed_data.json", "r") as f:
     data_path = json.load(f)["path"]
 epochs = 3000
+warmup_threshold = .70
 batch_size = 30
 
-validity = []
-generation = []
+validity = {"acc": [], "loss": []}
+generation = {"acc": [], "loss": []}
 
 size = len(data_path) - len(data_path) % batch_size 
 
@@ -210,6 +211,23 @@ with tqdm(total=size,
     gen = [0, 0]
     val = [0, 0]
     seed = np.random.normal(size=(16, 100))
+    
+    while(val[1] < warmup_threshold):
+        batch_gen = batches_generator(data_path, batch_size)
+        
+        discriminator.trainable = True
+        
+        for batch, labels in batch_gen:
+            noise = np.random.normal(size=(batch_size, 100))
+            fake_imgs = generator.predict(noise)
+            fake_labels = np.zeros(batch_size)
+
+            x = np.concatenate((np.array(batch), fake_imgs), axis=0)
+            y = np.concatenate((np.array(labels), fake_labels))
+
+            val = discriminator.train_on_batch(x, y)
+            
+        print(f"After warmump validity metrics : {val}")
     
     for e in tqdm(range(epochs), desc="Training", unit="epoch"):
         pbar.set_description(f"Epoch {e} - disc training")
@@ -225,10 +243,9 @@ with tqdm(total=size,
             x = np.concatenate((np.array(batch), fake_imgs), axis=0)
             y = np.concatenate((np.array(labels), fake_labels))
 
-            y = keras.utils.to_categorical(y)
-
             val = discriminator.train_on_batch(x, y)
-            validity.append(val)
+            validity["loss"].append(val[0])
+            validity["acc"].append(val[1])
             
             pbar.update(len(batch))
             
@@ -245,11 +262,10 @@ with tqdm(total=size,
 
             x = np.concatenate((np.array(batch), fake_imgs), axis=0)
             y = np.concatenate((np.array(labels), fake_labels))
-
-            y = keras.utils.to_categorical(y)
             
-            gen = combined.train_on_batch(noise, y[batch_size-1:-1, :])
-            generation.append(gen)
+            gen = combined.train_on_batch(noise, y[batch_size-1:-1])
+            generation["loss"].append(gen[0])
+            generation['acc'].append(gen[1])
             
             pbar.update(len(batch))
             
