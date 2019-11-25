@@ -5,7 +5,7 @@
 # 
 # Unleashing the power of DCNN to create random Raphaëls.
 
-# In[1]:
+# In[2]:
 
 
 import json
@@ -24,30 +24,29 @@ from tensorflow.keras.models import Sequential, Model
 from tqdm import tqdm
 
 
-# In[22]:
+# In[33]:
 
 
 def build_generator(latent_size):    
     generator = Sequential([
         # (latent_size)
         Input(shape=(latent_size,), name="LatentNoise"),
-        Dense(16*16*128, activation="relu"),
+        Dense(16*16*256, activation="relu"),
         # (16, 16, 384)
-        Reshape((16, 16, 128)),
+        Reshape((16, 16, 256)),
+        Conv2D(128, 3, padding="same", activation="relu"),
         # (32, 32, 192)
         UpSampling2D(),
-        Conv2DTranspose(64, 3, padding="same", activation="relu"),
-        Conv2DTranspose(64, 3, padding="same", activation="relu"),
+        Conv2D(64, 3, padding="same", activation="relu"),
         BatchNormalization(momentum=0.8),
         # (64, 64, 96)
         UpSampling2D(),
-        Conv2DTranspose(32, 3, padding="same", activation="relu"),
-        Conv2DTranspose(32, 3, padding="same", activation="relu"),
+        Conv2D(32, 3, padding="same", activation="relu"),
         BatchNormalization(momentum=0.8),
         # (128, 128, 3)
         UpSampling2D(),
-        Conv2DTranspose(3, 3, padding="same", activation="sigmoid"),
-        Conv2DTranspose(3, 3, padding="same", activation="sigmoid"),
+        Conv2D(3, 3, padding="same", activation="sigmoid")
+        
     ], name="generator")
     
     return generator
@@ -59,27 +58,34 @@ def build_discriminator():
         Input(shape=(128, 128, 3), name="InputImages"),
         Conv2D(32, 3, padding="same", kernel_initializer="he_normal"),
         LeakyReLU(0.2),
-        Conv2D(32, 3, padding="same", kernel_initializer="he_normal"),
-        LeakyReLU(0.2),
+        BatchNormalization(momentum=0.8),
         MaxPooling2D(),
         Dropout(0.2),
         
         Conv2D(64, 3, padding="same", kernel_initializer="he_normal"),
         LeakyReLU(0.2),
-        Conv2D(64, 3, padding="same", kernel_initializer="he_normal"),
-        LeakyReLU(0.2),
+        BatchNormalization(momentum=0.8),
         MaxPooling2D(),
         Dropout(0.2),
         
         Conv2D(128, 3, padding="same", kernel_initializer="he_normal"),
         LeakyReLU(0.2),
+        BatchNormalization(momentum=0.8),
+        MaxPooling2D(),
+        
         Conv2D(128, 3, padding="same", kernel_initializer="he_normal"),
         LeakyReLU(0.2),
+        BatchNormalization(momentum=0.8),
+        MaxPooling2D(),
+        
+        Conv2D(256, 3, padding="same", kernel_initializer="he_normal"),
+        LeakyReLU(0.2),
+        BatchNormalization(momentum=0.8),
         MaxPooling2D(),
         
         Flatten(),
         Dropout(0.2),
-        Dense(128, activation="relu"),
+        Dense(256, activation="relu"),
         Dropout(0.2),
         Dense(1, activation="sigmoid")        
     ], name="discriminator")
@@ -87,31 +93,31 @@ def build_discriminator():
     return discriminator
 
 
-# In[23]:
+# In[34]:
 
 
 generator = build_generator(100)
 
 
-# In[24]:
+# In[35]:
 
 
 discriminator = build_discriminator()
 
 
-# In[25]:
+# In[36]:
 
 
 discriminator.summary()
 
 
-# In[26]:
+# In[37]:
 
 
 generator.summary()
 
 
-# In[27]:
+# In[38]:
 
 
 def build_combined(discriminator, generator, latent_size):
@@ -122,19 +128,19 @@ def build_combined(discriminator, generator, latent_size):
     return Model(noise, validation, name="combined")
 
 
-# In[28]:
+# In[39]:
 
 
 combined = build_combined(discriminator, generator, 100)
 
 
-# In[29]:
+# In[40]:
 
 
 combined.summary()
 
 
-# In[30]:
+# In[41]:
 
 
 opt = keras.optimizers.Adam(lr=0.0001, decay=1e-7)
@@ -145,20 +151,26 @@ discriminator.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accur
 combined.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 
-# In[31]:
+# In[57]:
 
 
 noise = np.random.normal(size=(1, 100))
 rand_img = generator.predict(noise)
 
 
-# In[32]:
+# In[58]:
 
 
 plt.imshow(rand_img.reshape((128, 128, 3)))
 
 
-# In[33]:
+# In[59]:
+
+
+batch_gen = batches_generator(data_path, batch_size)
+
+
+# In[60]:
 
 
 def batches_generator(data_path, batch_size):
@@ -172,7 +184,7 @@ def batches_generator(data_path, batch_size):
         yield np.array(batch), np.array(labels)
 
 
-# In[34]:
+# In[61]:
 
 
 def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noise=None):
@@ -191,7 +203,7 @@ def see_the_raph_growing(generator, epoch=None, save_path=None, size=(4, 4), noi
         plt.close(fig)
 
 
-# In[38]:
+# In[22]:
 
 
 with open("../../data/processed_data.json", "r") as f:
